@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Order;
 use Illuminate\Http\Request;
 
 class WebController extends Controller
@@ -12,7 +13,7 @@ class WebController extends Controller
 
     public function payment(Request $request){
         // Set your Merchant Server Key
-        \Midtrans\Config::$serverKey = 'SB-Mid-server-R99WdErcNmZQ1HIJ4-qDLtVl';
+        \Midtrans\Config::$serverKey = env('MIDTRANS_SERVER_KEY');
         // Set to Development/Sandbox Environment (default). Set to true for Production Environment (accept real transaction).
         \Midtrans\Config::$isProduction = false;
         // Set sanitization on (default)
@@ -52,6 +53,18 @@ class WebController extends Controller
     }
 
     public function payment_post(Request $request){
-        return $request;
+        $json = json_decode($request->get('json'));
+        $order = new Order();
+        $order->status = $json->transaction_status;
+        $order->uname = $request->get('uname');
+        $order->email = $request->get('email');
+        $order->number = $request->get('number');
+        $order->transaction_id = $json->transaction_id;
+        $order->order_id = $json->order_id;
+        $order->gross_amount = $json->gross_amount;
+        $order->payment_type = $json->payment_type;
+        $order->payment_code = isset($json->payment_code) ? $json->payment_code : null;
+        $order->pdf_url = isset($json->pdf_url) ? $json->pdf_url : null;
+        return $order->save() ? redirect(url('/'))->with('alert-success', 'Order berhasil dibuat') : redirect(url('/'))->with('alert-failed', 'Terjadi kesalahan');
     }
 }
